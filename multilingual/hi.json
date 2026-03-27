@@ -1,0 +1,68 @@
+{
+  "app_name": "मेडीट्रैक",
+  "lang_label": "भाषा",
+
+  "login": {
+    "subtitle": "अपने खाते में साइन इन करें",
+    "username": "उपयोगकर्ता नाम",
+    "password": "पासवर्ड",
+    "show": "दिखाएं",
+    "hide": "छुपाएं",
+    "sign_in": "साइन इन",
+    "no_account": "खाता नहीं है?",
+    "sign_up": "साइन अप"
+  },
+
+  "signup": {
+    "title": "खाता बनाएं",
+    "subtitle": "आज ही मेडीट्रैक से जुड़ें",
+    "email": "ई-मेल आईडी:",
+    "username": "उपयोगकर्ता नाम:",
+    "password": "पासवर्ड:",
+    "confirm_password": "पासवर्ड की पुष्टि करें:",
+    "contact": "संपर्क:",
+    "dob": "जन्म तिथि:",
+    "disclaimer_text": "मैं सहमत हूँ ",
+    "disclaimer_link": "अस्वीकरण",
+    "upload_pic": "प्रोफ़ाइल चित्र अपलोड करें",
+    "sign_up": "साइन अप",
+    "have_account": "पहले से खाता है?",
+    "login": "लॉगिन"
+  },
+
+  "sidebar": {
+    "dashboard": "डैशबोर्ड",
+    "my_medicines": "मेरी दवाइयाँ",
+    "reminders": "अनुस्मारक",
+    "medical_history": "चिकित्सा इतिहास",
+    "interactions": "इंटरैक्शन",
+    "food_diet": "खाना और आहार",
+    "profile": "प्रोफ़ाइल",
+    "language": "भाषा"
+  },
+
+  "medicines": {
+    "title": "मेरी दवाइयाँ",
+    "subtitle": "अपने नुस्खे प्रबंधित करें",
+    "current_section": "वर्तमान दवाइयाँ",
+    "past_section": "पिछली दवाइयाँ",
+    "add_btn": "＋ दवाई जोड़ें",
+    "popup_title": "दवाई जोड़ें",
+    "popup_label": "दवाई का नाम",
+    "popup_add": "जोड़ें",
+    "status_current": "✓ वर्तमान",
+    "status_past": "📦 पुरानी"
+  },
+
+  "history": {
+    "title": "चिकित्सा इतिहास",
+    "subtitle": "आपकी चिकित्सा जानकारी",
+    "edit": "संपादित करें",
+    "save": "सहेजें"
+  },
+
+  "dashboard": {
+    "greeting": "सुप्रभात",
+    "tagline": "आपका स्वास्थ्य सारांश"
+  }
+}

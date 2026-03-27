@@ -1,0 +1,76 @@
+import sounddevice as sd
+import numpy as np
+from faster_whisper import WhisperModel
+import queue
+import sys
+
+# =============================
+# CONFIGURATION
+# =============================
+MODEL_SIZE = "small" # "medium" is MUCH better for Marathi/Gujarati translation if your PC can handle it
+DEVICE = "cpu"
+COMPUTE_TYPE = "int8"
+
+SAMPLE_RATE = 16000
+BLOCK_SIZE = 1024
+SILENCE_THRESHOLD = 0.01 
+SILENCE_DURATION = 1.5   
+
+print(f"--- MediTrack V2: Forced Translation Mode ---")
+model = WhisperModel(MODEL_SIZE, device=DEVICE, compute_type=COMPUTE_TYPE)
+audio_queue = queue.Queue()
+
+def callback(indata, frames, time, status):
+    audio_queue.put(indata.copy())
+
+def run_translator():
+    buffer = []
+    silent_chunks = 0
+    chunks_per_sec = SAMPLE_RATE / BLOCK_SIZE 
+
+    print("\n[LIVE] Speak in Marathi, Hindi, or Gujarati...")
+    
+    with sd.InputStream(samplerate=SAMPLE_RATE, channels=1, callback=callback, blocksize=BLOCK_SIZE):
+        while True:
+            chunk = audio_queue.get()
+            volume = np.linalg.norm(chunk) / np.sqrt(len(chunk))
+            
+            if volume > SILENCE_THRESHOLD:
+                buffer.append(chunk)
+                silent_chunks = 0
+            else:
+                silent_chunks += 1
+                
+            # If we have audio and reached silence duration
+            if len(buffer) > (chunks_per_sec * 0.5) and silent_chunks > (SILENCE_DURATION * chunks_per_sec):
+                print("... Translating ...")
+                
+                audio_data = np.concatenate(buffer).flatten().astype(np.float32)
+                
+                # IMPORTANT: Forced Translation logic
+                segments, info = model.transcribe(
+                    audio_data,
+                    task="translate",        # <--- This MUST be "translate" for English output
+                    beam_size=5,             # Increase for better quality
+                    best_of=5,               # Checks multiple possibilities
+                    vad_filter=True,
+                    # Helps the model recognize the context is medical
+                    initial_prompt="The following is a medical translation from an Indian language to English."
+                )
+
+                # Reset buffer immediately so we don't miss the next sentence
+                buffer = []
+                silent_chunks = 0
+
+                for segment in segments:
+                    # Whisper translation to English happens here
+                    if segment.no_speech_prob < 0.4:
+                        print(f"\033[92m[EN] >> {segment.text.strip()}\033[0m")
+                
+                print("--- Ready for next sentence ---")
+
+if __name__ == "__main__":
+    try:
+        run_translator()
+    except KeyboardInterrupt:
+        print("\nStopping...")
