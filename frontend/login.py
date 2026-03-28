@@ -1,8 +1,12 @@
+import hashlib
 from tkinter import *
+from tkinter import messagebox
 from scrollable import scrollablefunc
 from config import BG, CARD, ACCENT, ACCENT2, TEXT_DARK, TEXT_MED, TEXT_LIGHT, PILL_BG, F, FM
+from backend.db import getConnection
 
 def loginpage(parent, controller):
+
       frame = Frame(parent, bg=BG)
 
       card = Frame(frame, bg=CARD, padx=36, pady=32,
@@ -50,7 +54,41 @@ def loginpage(parent, controller):
       # Login button
       def logindone():
             # check from db, history_filled = true: dashboard or else medical history page
-            controller("dashboard")
+            username = Eusername.get().strip()
+            password = Epassword.get().strip()
+
+            if not username or not password:
+                  messagebox.showwarning("Input Error","Please enter both the field")
+                  return
+            
+            hashedpass = hashlib.sha256(password.encode()).hexdigest()
+
+            conn = None
+            try:
+                  conn = getConnection()
+                  cursor = conn.cursor(dictionary=True)
+
+                  query = "SELECT * FROM patientinfo WHERE username = %s AND password = %s"
+                  cursor.execute(query, (username,hashedpass))
+                  patient = cursor.fetchone()
+
+                  if patient:
+                        if patient.get('history_filled'):
+                              messagebox.showinfo("Success", f"Welcome back, {username}!")
+                              controller("dashboard")
+                        else:
+                              messagebox.showinfo("Success", f"Welcome, {username} to MediTrack!")
+                              controller("history")
+                  else:
+                        messagebox.showwarning("Missing","No user exists")
+
+            except Exception as e:
+                  messagebox.showerror("Database Error", f"Error: {e}")
+            
+            finally:
+                  if conn:
+                        conn.close()
+
 
       def on_enter(e): login_btn.config(bg="#236358")
       def on_leave(e): login_btn.config(bg=ACCENT)

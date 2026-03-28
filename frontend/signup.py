@@ -1,8 +1,13 @@
+import re
+import hashlib
 from tkinter import *
 from tkinter import font as tkfont
 from tkcalendar import DateEntry
 from tkinter import filedialog
 from scrollable import scrollablefunc
+from tkinter import messagebox
+from datetime import date
+from backend.db import getConnection
 from config import BG, CARD, ACCENT, ACCENT2, TEXT_DARK, TEXT_MED, TEXT_LIGHT, PILL_BG, F, FM
 
 def signuppage(parent, controller):
@@ -82,7 +87,7 @@ def signuppage(parent, controller):
     Ldob = Label(card,text="DOB:",font=FM(10),bg=CARD)
     Ldob.grid(row=9,column=1,padx=2,sticky="w")
 
-    dobentry = DateEntry(card,width=25,year=1950,font=FM(11))
+    dobentry = DateEntry(card,width=25,year=2000,font=FM(11))
     dobentry.grid(row=10,column=1,padx=2,pady=6,sticky="ew")
 
 
@@ -101,24 +106,98 @@ def signuppage(parent, controller):
     dis_link.bind("<Button-1>", lambda e: controller("disclaimer"))
 
     # profile pic -> save, show
-
+    selected_pic_path = [None]
     def upload_pic():
         file = filedialog.askopenfilename(
             filetypes=[("Image Files","*.png *.jpg *.jpeg")]
         )
-        print(file)
+        # print(file)
+        if file:
+            selected_pic_path[0] = file
+            picbtn.config(text="Image Selected ✓", fg=ACCENT)
+
+
     picbtn = Button(card,text="Upload Profile Picture",command=upload_pic,font=FM(11))
     picbtn.grid(row=12,column=1,padx=2,pady=6,sticky="ew")
 
     def on_enter(e): signupbtn.config(bg="#236358")
     def on_leave(e): signupbtn.config(bg=ACCENT)
 
+    def validation_and_db():
+        mail = Email.get().strip()
+        username = Eusername.get().strip()
+        password = Epassword.get().strip()
+        cpassword = CEpassword.get().strip()
+        contact = Econtact.get().strip()
+        dob = dobentry.get_date()
+        agreed = disclaimerstate.get()
+        profile = selected_pic_path[0]
+
+        # Field Validations
+        if not all([mail,username,password,cpassword,contact]):
+            messagebox.showwarning("Input Error","All Fields are required")
+            return
+        
+        # Email Validation
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", mail):
+            messagebox.showwarning("Invalid Email", "Please enter a valid email address.")
+            return
+
+        # Password Validation
+        if password != cpassword:
+            messagebox.showerror("MisMatch","Passwords do not match")
+            return
+        
+        if len(password) < 6:
+            messagebox.showwarning("Weak Password", "Password must be at least 6 characters.")
+            return
+        
+        if not agreed:
+            messagebox.showwarning("Agreement Required", "You must agree to the Disclaimer to continue.")
+            return
+        
+        # Calculate Age
+        today = date.today()
+        age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
+        hashedpass = hashlib.sha256(password.encode()).hexdigest()
+
+        conn = None
+        try:
+            conn = getConnection()
+            cursor = conn.cursor()
+
+            checkquery = "SELECT * FROM patientinfo WHERE username = %s OR email = %s"
+            cursor.execute(checkquery, (username,mail))
+
+            if cursor.fetchone():
+                messagebox.showerror("Error","Username or Email already registered")
+                return
+            
+            # insert into db
+            insertquery = """
+                INSERT INTO patientinfo(email, username, password, contact, dob, age, disclaimer_accepted)
+                VALUES(%s, %s, %s, %s, %s, %s, %s)
+            """
+
+            cursor.execute(insertquery, (mail,username,hashedpass,contact,dob,age,agreed))
+            conn.commit()
+            messagebox.showinfo("Success","Account created successfully")
+            controller("login")
+
+        except Exception as e:
+            messagebox.showerror("Database error")
+
+        finally:
+            if conn:
+                conn.close()
+
     # signup button -> successful? -> login
     signupbtn = Button(card,text="Sign Up",font=FM(11,"bold"),
                        bg=ACCENT,fg="white",bd=0,
                        activebackground="#236358",activeforeground="white",
                        pady=8,cursor="hand2",
-                       command=lambda: controller("login"))
+                       command=validation_and_db)
     signupbtn.grid(row=13, column=0, columnspan=2, padx=2, pady=(14, 0), sticky="ew")
 
     signupbtn.bind("<Enter>", on_enter)
