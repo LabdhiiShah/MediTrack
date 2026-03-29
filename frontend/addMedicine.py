@@ -1,6 +1,9 @@
 from tkinter import *
+from tkinter import messagebox
 from scrollable import scrollablefunc
+from backend.db import getConnection
 from config import CARD, ACCENT, TEXT_MED, FM
+from frontend import session
 
 def add_medicine_popup(add_card):
     popup = Toplevel()
@@ -24,8 +27,21 @@ def add_medicine_popup(add_card):
             highlightcolor=ACCENT).pack(ipady=7, padx=24)
 
     def confirm():
+        conn = getConnection()
+        cursor = conn.cursor()
+
         name = name_var.get().strip()
+        status = "current"
+        id = session.patientid
         if name:
+            # insert into db
+            query = """ 
+            INSERT INTO medicines (patient_id, name, status)
+            VALUES (%s, %s, %s)
+            """
+            cursor.execute(query,(id, name,status)) 
+            conn.commit()                                       
+            messagebox.showinfo("Success", f"{name} added successfully!")
             add_card(name, active=True)
             popup.destroy()
 
@@ -36,4 +52,3 @@ def add_medicine_popup(add_card):
     popup.bind("<Return>", lambda e: confirm())
 
     return popup
-    

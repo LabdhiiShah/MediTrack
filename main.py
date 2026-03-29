@@ -26,6 +26,8 @@ frames = {}
 
 def show(page_name):
     frame = frames[page_name]
+    if hasattr(frame, "refresh"):
+        frame.refresh()
     frame.tkraise()
 
 # register pages

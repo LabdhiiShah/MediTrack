@@ -4,6 +4,7 @@ from tkinter import messagebox
 from scrollable import scrollablefunc
 from config import BG, CARD, ACCENT, ACCENT2, TEXT_DARK, TEXT_MED, TEXT_LIGHT, PILL_BG, F, FM
 from backend.db import getConnection
+from frontend import session 
 
 def loginpage(parent, controller):
 
@@ -73,6 +74,8 @@ def loginpage(parent, controller):
                   patient = cursor.fetchone()
 
                   if patient:
+                        session.patientid = patient['id']
+                        print(f"DEBUG: Login successful. ID set to: {session.patientid}")
                         if patient.get('history_filled'):
                               messagebox.showinfo("Success", f"Welcome back, {username}!")
                               controller("dashboard")
