@@ -30,9 +30,18 @@ def mymedicinepage(parent, controller):
 
     Frame(main, height=1, bg="#DDD8CC").pack(fill="x", pady=10)
 
+    # + button
+    plus_btn = Label(main, text="＋ Add Medicine", font=FM(10, "bold"),
+                     bg=ACCENT, fg="white", padx=14, pady=8, cursor="hand2")
+    plus_btn.pack(anchor="w", padx=32, pady=(12, 0))
+    plus_btn.bind("<Button-1>", lambda e: add_medicine_popup(add_card))
+
+
     # Frame for all the medicines
-    allmedicines = Frame(main, bg=BG)
-    allmedicines.pack(fill="x", padx=32, pady=10,side="top")
+    scrollable = Frame(main, bg=BG)
+    scrollable.pack(fill="both",expand=True, padx=32, pady=10)
+
+    allmedicines = scrollablefunc(scrollable,BG)
 
     # current section
     Label(allmedicines, text="Current Medicines", font=FM(12, "bold"),
@@ -166,11 +175,5 @@ def mymedicinepage(parent, controller):
 
     # will derieve from db all the existing medicines and based on status over there, will place in the frame
     frame.refresh = refreshdata
-
-    # + button
-    plus_btn = Label(main, text="＋ Add Medicine", font=FM(10, "bold"),
-                     bg=ACCENT, fg="white", padx=14, pady=8, cursor="hand2")
-    plus_btn.pack(anchor="w", padx=32, pady=(12, 0))
-    plus_btn.bind("<Button-1>", lambda e: add_medicine_popup(add_card))
 
     return frame
