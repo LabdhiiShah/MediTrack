@@ -27,23 +27,41 @@ def add_medicine_popup(add_card):
             highlightcolor=ACCENT).pack(ipady=7, padx=24)
 
     def confirm():
-        conn = getConnection()
-        cursor = conn.cursor()
+        try:
+             conn = getConnection()
+             cursor = conn.cursor()
 
-        name = name_var.get().strip()
-        status = "current"
-        id = session.patientid
-        if name:
-            # insert into db
-            query = """ 
-            INSERT INTO medicines (patient_id, name, status)
-            VALUES (%s, %s, %s)
-            """
-            cursor.execute(query,(id, name,status)) 
-            conn.commit()                                       
-            messagebox.showinfo("Success", f"{name} added successfully!")
-            add_card(name, active=True)
-            popup.destroy()
+             name = name_var.get().strip()
+             status = "current"
+             id = session.patientid
+             if not name:
+                messagebox.showwarning("Input Error","Please enter a medicine name")
+                return
+             
+             # check if already exists
+             duplicatequery = "SELECT * FROM medicines WHERE patient_id = %s AND  LOWER(name) = LOWER(%s)"
+             cursor.execute(duplicatequery,(id,name))
+
+             if cursor.fetchone():
+                messagebox.showwarning("Duplicate",f"{name} already exists")
+                return
+
+             # insert into db
+             query = """ INSERT INTO medicines (patient_id, name, status)
+                        VALUES (%s, %s, %s)
+                        """
+             cursor.execute(query,(id, name,status)) 
+             conn.commit()                                       
+             messagebox.showinfo("Success", f"{name} added successfully!")
+             add_card(name, active=True)
+             popup.destroy()
+        
+        except Exception as e:
+            messagebox.showerror("Database error",e)
+
+        finally:
+            cursor.close()
+            conn.close()
 
     add_btn = Label(popup, text="Add", font=FM(10, "bold"),
                     bg=ACCENT, fg="white", padx=14, pady=7, cursor="hand2")
