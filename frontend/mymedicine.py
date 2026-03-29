@@ -3,7 +3,7 @@ from tkinter import messagebox
 from frontend.sidebar import create_sidebar
 from frontend.addMedicine import add_medicine_popup   
 from scrollable import scrollablefunc
-from config import BG, CARD, ACCENT, ACCENT2, TEXT_DARK, TEXT_MED, TEXT_LIGHT, PILL_BG, F, FM
+from config import BG, CARD, ACCENT, ACCENT2, TEXT_DARK, TEXT_MED, TEXT_LIGHT, PILL_BG, F, FM, DANGER
 from backend.db import getConnection
 from frontend import session
 
@@ -96,6 +96,32 @@ def mymedicinepage(parent, controller):
         name_lbl = Label(left, text=name, font=FM(11), bg=CARD,
                          fg=TEXT_DARK if active else TEXT_LIGHT)
         name_lbl.pack(anchor="w")
+
+        def delete_medicine():
+            if messagebox.askyesno("Confirm",f"Delete {name} permanently"):
+                try:
+                    conn = getConnection()
+                    cursor = conn.cursor()
+
+                    deletequery = "DELETE FROM medicines WHERE patient_id = %s AND name = %s"
+                    cursor.execute(deletequery,(session.patientid,name))
+                    conn.commit()
+                    med.destroy()
+                    allmedicines.update_idletasks()
+
+                except Exception as e:
+                    messagebox.showerror("Database error")
+
+                finally:
+                    cursor.close()
+                    conn.close()
+
+
+        delete_lbl = Label(med,text="  Delete",font=FM(9, "bold"), bg=CARD,
+                           fg=DANGER if active else ACCENT2,
+                           cursor="hand2")
+        delete_lbl.pack(side="right",anchor="n")
+        delete_lbl.bind("<Button-1>", lambda e: delete_medicine())
 
         state = {"active": active}
 
