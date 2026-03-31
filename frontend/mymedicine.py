@@ -73,7 +73,6 @@ def mymedicinepage(parent, controller):
                 widget.destroy()
 
             # extract from db all medicines
-            print(f"DEBUG: Fetching medicines for ID: {patient_id}") # Check your console!
             query = """SELECT * FROM medicines WHERE patient_id = %s"""
             cursor.execute(query,(patient_id,))
             medicines = cursor.fetchall()

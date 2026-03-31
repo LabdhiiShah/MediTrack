@@ -4,6 +4,7 @@ from scrollable import scrollablefunc
 from backend.db import getConnection
 from config import CARD, ACCENT, TEXT_MED, FM
 from frontend import session
+from backend.mapping import medicine_name_mapping
 
 def add_medicine_popup(add_card):
     popup = Toplevel()
@@ -28,33 +29,37 @@ def add_medicine_popup(add_card):
 
     def confirm():
         try:
-             conn = getConnection()
-             cursor = conn.cursor()
+            conn = getConnection()
+            cursor = conn.cursor()
 
-             name = name_var.get().strip()
-             status = "current"
-             id = session.patientid
-             if not name:
+            name = name_var.get().strip().title()
+            status = "current"
+            id = session.patientid
+            if not name:
                 messagebox.showwarning("Input Error","Please enter a medicine name")
                 return
              
-             # check if already exists
-             duplicatequery = "SELECT * FROM medicines WHERE patient_id = %s AND  LOWER(name) = LOWER(%s)"
-             cursor.execute(duplicatequery,(id,name))
+            # check if already exists
+            duplicatequery = "SELECT * FROM medicines WHERE patient_id = %s AND  LOWER(name) = LOWER(%s)"
+            cursor.execute(duplicatequery,(id,name))
 
-             if cursor.fetchone():
+            if cursor.fetchone():
                 messagebox.showwarning("Duplicate",f"{name} already exists")
                 return
+            
+            # mapping if brandname then to generic name
+            display_name = medicine_name_mapping(name)
 
              # insert into db
-             query = """ INSERT INTO medicines (patient_id, name, status)
+            query = """ INSERT INTO medicines (patient_id, name, status)
                         VALUES (%s, %s, %s)
                         """
-             cursor.execute(query,(id, name,status)) 
-             conn.commit()                                       
-             messagebox.showinfo("Success", f"{name} added successfully!")
-             add_card(name, active=True)
-             popup.destroy()
+            cursor.execute(query,(id, display_name,status)) 
+            conn.commit()      
+
+            messagebox.showinfo("Success", f"{display_name} added successfully!")
+            add_card(display_name, active=True)
+            popup.destroy()
         
         except Exception as e:
             messagebox.showerror("Database error",e)
