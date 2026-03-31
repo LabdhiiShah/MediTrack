@@ -3,24 +3,26 @@ from tkinter import messagebox
 from backend.db import getConnection
 
 def fda(medname):
-
     url = f"https://api.fda.gov/drug/label.json?search=openfda.brand_name:{medname}&limit=1"
-
     try:
-        response = requests.get(url, timeout = 4)
+        response = requests.get(url, timeout=4)
         if response.status_code == 200:
             data = response.json()
-
-            # import json
-            # print(json.dumps(data, indent=4))
-
-            return data['results'][0]['openfda']['generic_name'][0].lower()
+            
+            # Use .get() to avoid error if data not found
+            results = data.get('results', [])
+            if results:
+                openfda = results[0].get('openfda', {})
+                generic_list = openfda.get('generic_name', [])
+                
+                if generic_list:
+                    return generic_list[0].lower()
         
+        # If any of the above are missing, return None gracefully
     except Exception as e:
         print(f"Error during API call: {e}")
     
     return None
-
 
 def medicine_name_mapping(medname):
     name = medname.strip()
