@@ -82,7 +82,7 @@ def loginpage(parent, controller):
                               messagebox.showinfo("Success", f"Welcome, {username} to MediTrack!")
                               controller("history")
                   else:
-                        messagebox.showwarning("Missing","No user exists")
+                        messagebox.showwarning("Missing","Incorrect Username or Password")
 
             except Exception as e:
                   messagebox.showerror("Database Error", f"Error: {e}")
