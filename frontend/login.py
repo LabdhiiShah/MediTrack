@@ -75,7 +75,6 @@ def loginpage(parent, controller):
 
                   if patient:
                         session.patientid = patient['id']
-                        print(f"DEBUG: Login successful. ID set to: {session.patientid}")
                         if patient.get('history_filled'):
                               messagebox.showinfo("Success", f"Welcome back, {username}!")
                               controller("dashboard")
