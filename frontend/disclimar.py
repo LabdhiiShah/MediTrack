@@ -1,1 +1,0 @@
-from scrollable import scrollablefunc

@@ -13,7 +13,7 @@ def loginpage(parent, controller):
       card = Frame(frame, bg=CARD, padx=36, pady=32,
                   relief="flat", bd=0)
       card.place(relx=0.5, rely=0.5, anchor=CENTER)
-
+           
       # Logo
       logo_canvas = Canvas(card, width=44, height=44, bg=CARD, highlightthickness=0)
       logo_canvas.grid(row=0, column=0, columnspan=2, pady=(0, 4))
@@ -52,6 +52,15 @@ def loginpage(parent, controller):
       toggle_btn.grid(row=7, column=1, sticky="e", padx=6)
       toggle_btn.bind("<Button-1>", lambda e: toggle_password())
 
+      def clear_fields():
+            Eusername.delete(0, END)
+            Epassword.delete(0, END)
+            Epassword.config(show="*")
+            toggle_btn.config(text="Show", fg=TEXT_LIGHT)
+            Eusername.focus_set()
+
+      frame.refresh = clear_fields
+
       # Login button
       def logindone():
             # check from db, history_filled = true: dashboard or else medical history page
@@ -77,6 +86,8 @@ def loginpage(parent, controller):
                         session.patientid = patient['id']
                         if patient.get('history_filled'):
                               messagebox.showinfo("Success", f"Welcome back, {username}!")
+                              clear_fields()
+
                               controller("dashboard")
                         else:
                               messagebox.showinfo("Success", f"Welcome, {username} to MediTrack!")

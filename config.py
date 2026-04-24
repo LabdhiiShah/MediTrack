@@ -11,6 +11,10 @@ PILL_BG     = "#E6F4F1"
 DANGER      = "#C0392B"
 WARN        = "#E67E22"
 SAFE        = "#27AE60"
+ACCENT_DK   = "#1D6B52"  
+SURFACE     = "#F4F4F4"  
+BORDER      = "#E0E0E0"  
+SECTION_BG  = "#F0F7F5"
 
 def F(size, weight="normal", slant="roman"):
     return tkfont.Font(family="Georgia", size=size, weight=weight, slant=slant)

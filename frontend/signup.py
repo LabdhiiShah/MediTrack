@@ -7,13 +7,14 @@ from tkinter import filedialog
 from scrollable import scrollablefunc
 from tkinter import messagebox
 from datetime import date
+from frontend.modules import center
 from backend.db import getConnection
 from config import BG, CARD, ACCENT, ACCENT2, TEXT_DARK, TEXT_MED, TEXT_LIGHT, PILL_BG, F, FM
 
 def signuppage(parent, controller):
     frame = Frame(parent,bg=BG)
 
-    # ── Scrollable card area ─────────────────────────────────────────────────
+    # Scrollable card area
     card = Frame(frame, bg=CARD, padx=36, pady=32,
                  highlightbackground="#D8EAE7", highlightthickness=0)
     card.place(relx=0.5, rely=0.5, anchor=CENTER)
@@ -21,7 +22,7 @@ def signuppage(parent, controller):
     card.columnconfigure(0, weight=1, pad=10)
     card.columnconfigure(1, weight=1, pad=10)
 
-    # ── Logo + header ────────────────────────────────────────────────────────
+    # Logo + header 
     logo_c = Canvas(card, width=44, height=44, bg=CARD, highlightthickness=0)
     logo_c.grid(row=0, column=0, columnspan=2, pady=(0, 4))
     logo_c.create_oval(2, 2, 42, 42, fill=ACCENT, outline="")
@@ -32,6 +33,7 @@ def signuppage(parent, controller):
     Label(card, text="Join MediTrack today", font=FM(10),
           bg=CARD, fg=TEXT_LIGHT).grid(row=2, column=0, columnspan=2, pady=(2, 16))
 
+    # mail
     mail = Label(card,text="E-mail id:",font=FM(9),bg=CARD,anchor="w")
     mail.grid(row=3,column=0,sticky="w")
 
@@ -39,7 +41,7 @@ def signuppage(parent, controller):
     Email.grid(row=4, column=0, ipady=7, padx=2,sticky="ew")
     Frame(card,bg=ACCENT,height=2).grid(row=5,column=0,padx=2,sticky="ew")
 
-    # username -> ~cache
+    # username 
     username = Label(card,text="Username:",font=FM(10),bg=CARD,anchor="w")
     username.grid(row=3,column=1,padx=2,sticky="w")
 
@@ -90,20 +92,61 @@ def signuppage(parent, controller):
     dobentry = DateEntry(card,width=25,year=2000,font=FM(11))
     dobentry.grid(row=10,column=1,padx=2,pady=6,sticky="ew")
 
+    # disclaimerstate = IntVar()
+    # dis_row = Frame(card, bg=CARD)
+    # dis_row.grid(row=12, column=0, pady=6, sticky="ew")
 
-    # disclaimer -> link to another frame, where something is writen, if checked then only continue
+    # Disclaimer Popup 
+    def show_disclaimer_popup():
+        popup = Toplevel()
+        popup.title("MediTrack Disclaimer")
+        
+        # Decreased width from 500 to 420
+        p_width = 420
+        p_height = 400
+        
+        # Use your centering function
+        center(popup, p_width, p_height)
+        
+        popup.configure(bg=CARD)
+        popup.resizable(False, False)
+        popup.transient(frame) 
+        popup.grab_set()
+
+        Label(popup, text="Medical Disclaimer", font=F(14, "bold"), 
+            bg=CARD, fg=TEXT_DARK).pack(pady=(20, 10))
+        
+        text_frame = Frame(popup, bg=CARD, padx=25)
+        text_frame.pack(fill="both", expand=True)
+
+        disclaimer_text = """This application is an informational tool only and does not provide professional medical advice, 
+                            diagnosis, or treatment; by using MediTrack, you acknowledge that you are solely responsible for the accuracy of all 
+                            medication data entered and agree that the developers shall not be held liable for any health complications, missed 
+                            doses, or technical failures, including notification errors, that may occur. Do not rely on this software for 
+                            life-critical medical decisions, as it is not a substitute for professional healthcare, and in the event of a medical 
+                            emergency, you must immediately contact your local emergency services or a licensed medical professional."""
+
+        content = Text(text_frame, wrap="word", font=FM(13), bg=CARD, fg=TEXT_MED, 
+                    bd=0, highlightthickness=0, height=10)
+        content.insert("1.0", disclaimer_text)
+        content.config(state="disabled")
+        content.pack(fill="both", expand=True)
+
+        Button(popup, text="Close", font=F(10, "bold"), bg=ACCENT, fg="white", 
+            padx=25, pady=6, bd=0, cursor="hand2", command=popup.destroy).pack(pady=20)
+
+ 
+    # disclaimer -> link to another frame
     disclaimerstate = IntVar()
     dis_row = Frame(card, bg=CARD)
-    dis_row.grid(row=12, column=0, pady=6, sticky="ew")
+    dis_row.grid(row=12, column=0, pady=6, sticky="w")
 
-    Checkbutton(dis_row, variable=disclaimerstate, bg=CARD,
-                activebackground=CARD, selectcolor=PILL_BG).pack(side="left")
-    Label(dis_row, text="I agree to the ", font=FM(10),
-        bg=CARD, fg=TEXT_MED).pack(side="left")
-    dis_link = Label(dis_row, text="Disclaimer", font=FM(10, "bold"),
-                    bg=CARD, fg=ACCENT2, cursor="hand2")
+    Checkbutton(dis_row, variable=disclaimerstate, bg=CARD, activebackground=CARD, selectcolor="white").pack(side="left")
+    Label(dis_row, text="I agree to the ", font=FM(10), bg=CARD, fg=TEXT_MED).pack(side="left")
+    
+    dis_link = Label(dis_row, text="Disclaimer", font=FM(10, "bold"), bg=CARD, fg=ACCENT2, cursor="hand2")
     dis_link.pack(side="left")
-    dis_link.bind("<Button-1>", lambda e: controller("disclaimer"))
+    dis_link.bind("<Button-1>", lambda e: show_disclaimer_popup())
 
     # profile pic -> save, show
     selected_pic_path = [None]
@@ -111,10 +154,10 @@ def signuppage(parent, controller):
         file = filedialog.askopenfilename(
             filetypes=[("Image Files","*.png *.jpg *.jpeg")]
         )
-        # print(file)
+        
         if file:
             selected_pic_path[0] = file
-            picbtn.config(text="Image Selected ✓", fg=ACCENT)
+            picbtn.config(text="Image Selected")
 
 
     picbtn = Button(card,text="Upload Profile Picture",command=upload_pic,font=FM(11))
@@ -140,7 +183,7 @@ def signuppage(parent, controller):
         
         # Email Validation
         if not re.match(r"[^@]+@[^@]+\.[^@]+", mail):
-            messagebox.showwarning("Invalid Email", "Please enter a valid email address.")
+            messagebox.showwarning("Invalid Email", "Please enter a valid email address")
             return
 
         # Password Validation
@@ -149,11 +192,15 @@ def signuppage(parent, controller):
             return
         
         if len(password) < 6:
-            messagebox.showwarning("Weak Password", "Password must be at least 6 characters.")
+            messagebox.showwarning("Weak Password", "Password must be at least 6 characters")
+            return
+        
+        if len(contact) != 10:
+            messagebox.showwarning("Invalid Length", "Contact number must be of 10 digits")
             return
         
         if not agreed:
-            messagebox.showwarning("Agreement Required", "You must agree to the Disclaimer to continue.")
+            messagebox.showwarning("Agreement Required", "You must agree to the Disclaimer to continue")
             return
         
         # Calculate Age
@@ -176,13 +223,35 @@ def signuppage(parent, controller):
             
             # insert into db
             insertquery = """
-                INSERT INTO patientinfo(email, username, password, contact, dob, age, disclaimer_accepted)
-                VALUES(%s, %s, %s, %s, %s, %s, %s)
-            """
+                        INSERT INTO patientinfo(email, username, password, contact, dob, age, disclaimer_accepted, profile)
+                        VALUES(%s, %s, %s, %s, %s, %s, %s, %s)
+                    """
 
-            cursor.execute(insertquery, (mail,username,hashedpass,contact,dob,age,agreed))
+            cursor.execute(insertquery, (mail,username,hashedpass,contact,dob,age,agreed,profile))
             conn.commit()
+
+            def clear_fields():
+                Email.delete(0, END)
+                Eusername.delete(0, END)
+                Epassword.delete(0, END)
+                CEpassword.delete(0, END) # Use CEpassword, not Cpassword
+                Econtact.delete(0, END)
+                
+                # Reset Password visibility
+                Epassword.config(show="*")
+                CEpassword.config(show="*")
+                t1.config(text="Show", fg=TEXT_LIGHT)
+                
+                # Reset Image and Checkbox
+                selected_pic_path[0] = None
+                picbtn.config(text="Upload Profile Picture", fg=TEXT_DARK)
+                disclaimerstate.set(0)
+                
+                Email.focus_set()
+
             messagebox.showinfo("Success","Account created successfully")
+            frame.refresh = clear_fields
+
             controller("login")
 
         except Exception as e:
@@ -214,5 +283,4 @@ def signuppage(parent, controller):
     login_link.pack(side="left")
     login_link.bind("<Button-1>", lambda e: controller("login"))
     
-
     return frame

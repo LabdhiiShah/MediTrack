@@ -1,4 +1,0 @@
-Some resources for tkinter
-https://www.pythonguis.com/tkinter/
-https://www.pythonguis.com/tutorials/customized-windows-tkinter/
-https://www.pythonguis.com/tutorials/input-validation-tkinter/

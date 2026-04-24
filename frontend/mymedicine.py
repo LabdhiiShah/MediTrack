@@ -16,7 +16,7 @@ def mymedicinepage(parent, controller):
     container = Frame(frame, bg=BG)
     container.pack(fill="both", expand=True)
 
-    create_sidebar(container, controller, "My Medicines")
+    frame.sidebar = create_sidebar(container, controller, "My Medicines")
 
     main = Frame(container, bg=BG)
     main.pack(side="left", fill="both", expand=True)
@@ -78,12 +78,12 @@ def mymedicinepage(parent, controller):
             medicines = cursor.fetchall()
 
             for med in medicines:
-                medname = med['name']
+                medname = med['medicine_name']
                 status = (med['status'] == 'current')
                 add_card(medname, status)
 
         except Exception as e:
-            messagebox.showerror("Database error")
+            messagebox.showerror("Database error","In refresh")
 
         finally:
             cursor.close()
@@ -111,14 +111,14 @@ def mymedicinepage(parent, controller):
                     conn = getConnection()
                     cursor = conn.cursor()
 
-                    deletequery = "DELETE FROM medicines WHERE patient_id = %s AND name = %s"
+                    deletequery = "DELETE FROM medicines WHERE patient_id = %s AND medicine_name = %s"
                     cursor.execute(deletequery,(session.patientid,name))
                     conn.commit()
                     med.destroy()
                     allmedicines.update_idletasks()
 
                 except Exception as e:
-                    messagebox.showerror("Database error")
+                    messagebox.showerror("Database error","In deleting medicines")
 
                 finally:
                     cursor.close()
@@ -152,12 +152,12 @@ def mymedicinepage(parent, controller):
                 cursor = conn.cursor()
 
                 # change the state in db too
-                changeStatusQuery = """UPDATE medicines SET status = %s WHERE patient_id = %s AND name = %s"""
+                changeStatusQuery = """UPDATE medicines SET status = %s WHERE patient_id = %s AND medicine_name = %s"""
                 cursor.execute(changeStatusQuery, (newstatus, patient_id, name))
                 conn.commit()
 
             except Exception as e:
-                messagebox.showerror("DataBase error")
+                messagebox.showerror("DataBase error","In toggle")
 
             finally:
                 cursor.close()
@@ -169,6 +169,7 @@ def mymedicinepage(parent, controller):
             past_frame.update_idletasks()
 
             add_card(name, active=state["active"])
+
 
         status_lbl.bind("<Button-1>", lambda e: toggle())
 

@@ -1,144 +1,224 @@
+import tkinter as tk
 from tkinter import *
+from tkinter import messagebox
+from tkinter import ttk
 from frontend.sidebar import create_sidebar
 from scrollable import scrollablefunc
 from config import BG, CARD, ACCENT, ACCENT2, TEXT_DARK, TEXT_MED, TEXT_LIGHT, PILL_BG, F, FM 
+from backend.db import getConnection
+from frontend import session
 
-def historypage(parent,controller):
+def historypage(parent, controller):
     frame = Frame(parent, bg=BG)
-    # user = controller.currentUser
-
-    container = Frame(frame,bg=BG)
-    container.pack(fill="both",expand=True)
-
-    # if user["history_filled"]:
-    #     create_sidebar(container, controller, "Medical History")
     
-    create_sidebar(container, controller, "Medical History")
-    
-    right = Frame(container, bg=BG)
-    right.pack(side="left",fill="both",expand=True)
+    container = Frame(frame, bg=BG)
+    container.pack(fill="both", expand=True)
 
-    con = scrollablefunc(right,BG)
+    state = {"editing": False, "hasfilled": 0}
+    labels = {}
+    entries = {}
 
-    main = Frame(con,bg=BG)
-    main.pack(fill="x",padx=20,pady=(20,4))
-    Label(main, text="Medical History", bg=BG, font=F(20,"bold"),
-          fg=TEXT_DARK, anchor="w").pack(side="left")
-    
-    edit = Label(main,text="Edit",font=FM(10,"bold"),
-                 bg=ACCENT,fg="white",padx=12,pady=6,cursor="hand2")
-    edit.pack(side="right")
+    def build_ui(status):
+        for widget in container.winfo_children():
+            widget.destroy()
 
-    Label(con, text="Your Medical Information",bg=BG,font=F(13),
-          fg=TEXT_MED, anchor="w").pack(fill="x",padx=20)
+        labels.clear()
+        entries.clear()
 
-    Frame(con, height=1, bg=ACCENT).pack(fill="x",pady=10)
+        # SIDEBAR LOGIC: Version 1 - Only created if status is true
+        if status == 1:
+            sidebar = create_sidebar(container, controller, "Medical History")
+            frame.sidebar = sidebar 
+        else:
+            frame.sidebar = None 
 
+        right = Frame(container, bg=BG)
+        right.pack(side="left", fill="both", expand=True)
+
+        con = scrollablefunc(right, BG)
+
+        header = Frame(con, bg=BG)
+        header.pack(fill="x", padx=20, pady=(20, 4))
+
+        Label(header, text="Medical History", bg=BG, font=F(20, "bold"),
+              fg=TEXT_DARK, anchor="w").pack(side="left")
+
+        # ACTION BUTTON: "Save & Continue" for new users, "Edit" for existing
+        btn_text = "Save & Continue" if status == 0 else "Edit"
+        
+        action_btn = Label(header, text=btn_text, font=FM(10, "bold"),
+                         bg=ACCENT if status == 1 else ACCENT2, 
+                         fg="white", padx=15, pady=8, cursor="hand2")
+        action_btn.pack(side="right")
+        action_btn.bind("<Button-1>", lambda e: toggle_mode(e, action_btn))
+
+        schema = [
+            {
+                "section": "Personal Information",
+                "fields": [
+                    ("Name", "name", "entry"), ("Age", "age", "entry"),
+                    ("Blood Group", "blood_group", "entry"), ("Gender", "gender", "dropdown"),
+                    ("Contact", "contact", "entry"), ("Alternate contact", "alt_contact", "entry"),
+                    ("Height (in cm)", "height", "entry"), ("Weight (in kg)", "weight", "entry")
+                ]
+            },
+            {
+                "section": "Health Details",
+                "fields": [
+                    ("Existing Conditions", "conditions", "text"),
+                    ("Allergies", "allergies", "text"),
+                    ("Past Surgeries", "surgeries", "text")
+                ]
+            }
+        ]
+
+        for section_data in schema:
+            Label(con, text=section_data["section"], font=FM(12, "bold"),
+                  bg=BG, fg=ACCENT).pack(anchor="w", padx=30, pady=(20, 5))
+            Frame(con, height=1, bg="#EEE", width=600).pack(anchor="w", padx=30, fill="x")
+
+            for label_text, data_key, input_type in section_data["fields"]:
+                row = Frame(con, bg=BG, pady=10)
+                row.pack(fill="x", padx=30)
+
+                Label(row, text=label_text, font=FM(10), bg=BG, fg=TEXT_MED,
+                      anchor="w", width=18).pack(side="left")
+
+                input_cont = Frame(row, bg=BG)
+                input_cont.pack(side="left", fill="x", expand=True)
+
+                lbl_val = Label(input_cont, text="—", font=FM(11), bg=CARD,
+                                fg=TEXT_DARK, anchor="w",
+                                height=3 if input_type == "text" else 1,
+                                padx=10, pady=8, highlightthickness=1, 
+                                highlightbackground="#D8EAE7")
+                lbl_val.pack(fill="x")
+                labels[data_key] = lbl_val
+
+                if input_type == "entry":
+                    ent = Entry(input_cont, font=FM(11), bg="white", relief="flat",
+                                highlightthickness=1, highlightbackground=ACCENT)
+                    entries[data_key] = ent
+                elif input_type == "dropdown":
+                    cb = ttk.Combobox(input_cont, values=["Male", "Female", "Other"], 
+                                      state="readonly", font=FM(11))
+                    entries[data_key] = cb
+                else:
+                    txt = Text(input_cont, height=4, font=FM(11), bg="white",
+                               relief="flat", highlightthickness=1,
+                               highlightbackground=ACCENT, padx=5, pady=5)
+                    entries[data_key] = txt
+
+        load_data()
+
+        # INITIAL STATE: If status is 0, force editing mode immediately
+        if status == 0:
+            state["editing"] = False
+            toggle_mode(edit_btn=action_btn) 
+
+        if hasattr(frame, "sidebar") and frame.sidebar and hasattr(frame.sidebar, "refresh"):
+            frame.sidebar.refresh()
+
+    def save_to_db():
+        pid = session.patientid
+        data = {k: (v.get().strip() if isinstance(v, (Entry, ttk.Combobox)) 
+                else v.get("1.0", END).strip()) for k, v in entries.items()}
+        
+        # Simple Validation
+        if not data.get("name") or not data.get("age"):
+            messagebox.showwarning("Required", "Please fill in Name and Age atleast.")
+            return False
+
+        try:
+            conn = getConnection()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT 1 FROM medical_history WHERE patient_id = %s", (pid,))
+            if not cursor.fetchone():
+                cursor.execute("INSERT INTO medical_history (patient_id) VALUES (%s)", (pid,))
+            
+            cursor.execute("""
+                UPDATE medical_history SET
+                name=%s, age=%s, blood_group=%s, gender=%s, contact=%s, 
+                alt_contact=%s, height=%s, weight=%s, conditions=%s, 
+                allergies=%s, surgeries=%s WHERE patient_id = %s
+            """, (*data.values(), pid))
+            conn.commit()
+
+            if not state["hasfilled"]:
+                cursor.execute("UPDATE patientinfo SET history_filled = 1 WHERE id = %s", (pid,))
+                conn.commit()
+                messagebox.showinfo("Success", "Profile Saved!")
+                controller("dashboard") # Version 1 Goal: Redirect to finish onboarding
+            else:
+                messagebox.showinfo("Success", "Updated!")
+            return True
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+            return False
+        finally:
+            if conn: conn.close()
+
+    def load_data():
+        try:
+            conn = getConnection()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM medical_history WHERE patient_id=%s", (session.patientid,))
+            row = cursor.fetchone()
+            if row:
+                for key in labels:
+                    val = row.get(key, "")
+                    labels[key].config(text=val if val else "—")
+        except: pass
+        finally:
+            if conn: conn.close()
+
+    def toggle_mode(e=None, edit_btn=None):
+        target_btn = e.widget if e else edit_btn
+        if not state["editing"]:
+            for key in entries:
+                txt_val = labels[key].cget("text")
+                if txt_val == "—": txt_val = ""
+                labels[key].pack_forget()
+                if isinstance(entries[key], (Entry, ttk.Combobox)):
+                    if isinstance(entries[key], Entry):
+                        entries[key].delete(0, END)
+                        entries[key].insert(0, txt_val)
+                    else: entries[key].set(txt_val)
+                    entries[key].pack(fill="x", ipady=4)
+                else:
+                    entries[key].delete("1.0", END)
+                    entries[key].insert("1.0", txt_val)
+                    entries[key].pack(fill="x")
+            
+            # Label remains "Save & Continue" for first timers, or "Save" for editors
+            if state["hasfilled"]:
+                target_btn.config(text="Save", bg=ACCENT2)
+            state["editing"] = True
+        else:
+            if save_to_db():
+                for key in entries:
+                    val = (entries[key].get() if isinstance(entries[key], (Entry, ttk.Combobox))
+                           else entries[key].get("1.0", END).strip())
+                    entries[key].pack_forget()
+                    labels[key].config(text=val if val else "—")
+                    labels[key].pack(fill="x")
+                if target_btn: target_btn.config(text="Edit", bg=ACCENT)
+                state["editing"] = False
+
+    def refresh():
+        pid = session.patientid
+        current_status = 0
+        try:
+            conn = getConnection()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT history_filled FROM patientinfo WHERE id = %s", (pid,))
+            res = cursor.fetchone()
+            if res: current_status = res['history_filled']
+        except: pass
+        finally:
+            if conn: conn.close()
+        state["hasfilled"] = current_status
+        build_ui(current_status)
+
+    frame.refresh = refresh
     return frame
-
-# from tkinter import *
-# from frontend.sidebar import create_sidebar
-# from config import BG, CARD, ACCENT, ACCENT2, TEXT_DARK, TEXT_MED, TEXT_LIGHT, PILL_BG, F, FM
-
-# def historypage(parent, controller):
-#     frame = Frame(parent, bg=BG)
-# #     user = controller.current_user
-
-#     container = Frame(frame, bg=BG)
-#     container.pack(fill="both", expand=True)
-
-#     create_sidebar(container, controller, "Medical History")
-
-#     content = Frame(container, bg=BG)
-#     content.pack(side="left", fill="both", expand=True)
-
-#     # ── Header ──────────────────────────────────────────
-#     header = Frame(content, bg=BG)
-#     header.pack(fill="x", padx=20, pady=(20, 4))
-
-#     Label(header, text="Medical History", bg=BG, font=F(20, "bold"),
-#           fg=TEXT_DARK, anchor="w").pack(side="left")
-
-#     edit_btn = Label(header, text="✏ Edit", font=FM(10, "bold"),
-#                      bg=ACCENT, fg="white", padx=12, pady=6, cursor="hand2")
-#     edit_btn.pack(side="right")
-
-#     Label(content, text="Your medical information", bg=BG, font=F(13),
-#           fg=TEXT_MED, anchor="w").pack(fill="x", padx=20)
-
-#     Frame(content, height=1, bg="#DDD8CC").pack(fill="x", pady=10)
-
-#     # ── Form Data ────────────────────────────────────────
-#     # Replace these with controller.current_user data from db later
-#     fields = {
-#         "Blood Type":           "B+",
-#         "Height (cm)":          "170",
-#         "Weight (kg)":          "65",
-#         "Allergies":            "Penicillin, Dust",
-#         "Chronic Conditions":   "Type 2 Diabetes, Hypertension",
-#         "Past Surgeries":       "Appendectomy (2018)",
-#         "Family History":       "Heart Disease, Diabetes",
-#         "Lifestyle Notes":      "Non-smoker, occasional alcohol",
-#     }
-
-#     form_frame = Frame(content, bg=BG)
-#     form_frame.pack(fill="x", padx=32, pady=10)
-
-#     entries = {}   # store Entry widgets
-#     labels  = {}   # store display Labels
-
-#     state = {"editing": False}
-
-#     for i, (field, value) in enumerate(fields.items()):
-#         # field label
-#         Label(form_frame, text=field, font=FM(9), bg=BG,
-#               fg=TEXT_MED, anchor="w").grid(row=i*2, column=0, sticky="w", pady=(10, 1))
-
-#         # display label (view mode)
-#         lbl = Label(form_frame, text=value, font=FM(11), bg=CARD,
-#                     fg=TEXT_DARK, anchor="w", padx=12, pady=8,
-#                     highlightthickness=1, highlightbackground="#D8EAE7")
-#         lbl.grid(row=i*2+1, column=0, sticky="ew", pady=(0, 2))
-#         labels[field] = lbl
-
-#         # entry widget (edit mode) — hidden initially
-#         var = StringVar(value=value)
-#         ent = Entry(form_frame, textvariable=var, font=FM(11),
-#                     bg=PILL_BG, relief="flat", bd=0,
-#                     highlightthickness=1, highlightbackground=ACCENT)
-#         entries[field] = (ent, var)
-
-#     form_frame.columnconfigure(0, weight=1)
-
-#     # ── Toggle Edit / Save ───────────────────────────────
-#     def toggle_edit():
-#         if not state["editing"]:
-#             # switch to edit mode
-#             for field, (ent, var) in entries.items():
-#                 labels[field].grid_remove()
-#                 ent.grid(row=list(fields.keys()).index(field)*2+1,
-#                          column=0, sticky="ew", ipady=7, pady=(0, 2))
-#             edit_btn.config(text="💾 Save")
-#             state["editing"] = True
-#         else:
-#             # save and switch back to view mode
-#             for field, (ent, var) in entries.items():
-#                 new_val = var.get().strip()
-#                 labels[field].config(text=new_val)
-#                 ent.grid_remove()
-#                 labels[field].grid()
-#             edit_btn.config(text="✏ Edit")
-#             state["editing"] = False
-
-#             save_to_db()
-
-#     edit_btn.bind("<Button-1>", lambda e: toggle_edit())
-
-#     # ── DB Save ──────────────────────────────────────────
-#     def save_to_db():
-#         data = {field: var.get().strip() for field, (_, var) in entries.items()}
-#         # TODO: call your db function here
-#         # update_medical_history(user["id"], data)
-#         print("Saved:", data)
-
-#     return frame
